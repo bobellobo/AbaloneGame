@@ -1,5 +1,5 @@
 import "./css/styles.css";
-import $ from "jquery";
+import $ from "jquery"
 function App() {
 
 
@@ -89,6 +89,7 @@ function initBoard() {
   ],
   whoseTurn: whoseTurn
 };
+  console.log('Board initialized')
 }
 
 var initializeGame = function() {
@@ -226,13 +227,14 @@ function canIShove() {
 function findValidMarbles(index) {
   valids = [];
   if (selectedMarbles.length === 1) {
-    var cell = board[index];
-    if (board[(cell.nw)] && board[(cell.nw)].marble === whoseTurn) {valids.push(cell.nw);}
-    if (board[(cell.ne)] && board[(cell.ne)].marble === whoseTurn && board[(cell.ne)]) {valids.push(cell.ne);}
-    if (board[(cell.e)] && board[(cell.e)].marble === whoseTurn) {valids.push(cell.e);}
-    if (board[(cell.se)] && board[(cell.se)].marble === whoseTurn) {valids.push(cell.se);}
-    if (board[(cell.sw)] && board[(cell.sw)].marble === whoseTurn) {valids.push(cell.sw);}
-    if (board[(cell.w)] && board[(cell.w)].marble === whoseTurn) {valids.push(cell.w);}
+    var cell = board.board[index];
+    console.log(cell)
+    if (board.board[(cell.nw)] && board.board[(cell.nw)].marble === whoseTurn) {valids.push(cell.nw);}
+    if (board.board[(cell.ne)] && board.board[(cell.ne)].marble === whoseTurn && board.board[(cell.ne)]) {valids.push(cell.ne);}
+    if (board.board[(cell.e)] && board.board[(cell.e)].marble === whoseTurn) {valids.push(cell.e);}
+    if (board.board[(cell.se)] && board.board[(cell.se)].marble === whoseTurn) {valids.push(cell.se);}
+    if (board.board[(cell.sw)] && board.board[(cell.sw)].marble === whoseTurn) {valids.push(cell.sw);}
+    if (board.board[(cell.w)] && board.board[(cell.w)].marble === whoseTurn) {valids.push(cell.w);}
   } else if (selectedMarbles.length === 2) {
     var dir = getTopDir();
 
@@ -259,7 +261,7 @@ function findCellsClasses(arr) {
 //reverse the array depending ont he direction
 
 function moveMarbles(direction) {
-  console.log(direction);
+
   if(direction === 'ne' || direction === 'nw' || direction === 'w') {
     // check if you're shoving a marble
     selectedMarbles.forEach(function(marbleIdx) {
@@ -332,7 +334,6 @@ function renderArrows() {
 function renderBoard() {
   console.log(board)
   board.board.forEach(function(cell, idx) {
-    console.log(cell, idx);
     var $cellEl = $('[index="' + idx + '"]');
     $cellEl.removeClass('p1 p2 clickable clicked');
     if ($.inArray(idx, selectedMarbles) === 0 || $.inArray(idx, selectedMarbles) === 1 || $.inArray(idx, selectedMarbles) === 2) {
@@ -365,6 +366,7 @@ function renderValids() {
 }
 
 
+
 ////////
 //Event Listeners
 ////////
@@ -373,8 +375,8 @@ $( ".cell").click(function(evt) {
     if (selectedMarbles.length < 3) {
       var cellIndex = getCellIndex(this);
       // ignore clicks on empty cells
-      if (board[cellIndex].marble === null) return;
-      if (board[cellIndex].marble !== whoseTurn) return;
+      if (board.board[cellIndex].marble === null) return;
+      if (board.board[cellIndex].marble !== whoseTurn) return;
       if (selectedMarbles.length && !valids.includes(cellIndex)) return;
       if ($.inArray(cellIndex, selectedMarbles) === -1) {
           $(this).addClass("clicked");
@@ -413,28 +415,10 @@ initializeGame();
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   return (
         <div className="App">
           <h1>Abalone JS</h1>
+
           <div className='rose'>
           <i dir="nw" className="nw moveArrow fa fa-arrow-circle-left fa-3x rotatedir"   alt="Move Northwest"> </i>
           <i dir="ne" className="ne moveArrow fa fa-arrow-circle-up fa-3x rotatedir"     alt="Move Northeast"> </i><br/>
