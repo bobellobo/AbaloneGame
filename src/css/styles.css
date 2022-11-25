@@ -1,0 +1,93 @@
+@import url(https://fonts.googleapis.com/css?family=Bitter:400,400italic,700);
+
+
+
+.textbox {
+  font-family: 'Bitter', serif;
+  color: #2e0927;
+}
+
+h1, h2 {
+  display: inline;
+}
+
+.jumble, .tilt, .rotate {
+  cursor: pointer;
+  color: #2e0927;
+}
+
+.containertilt {
+      -webkit-perspective: 600px;
+  perspective: 600px;
+
+}
+
+.boardtilt {
+      -webkit-transform: rotateX(deg);
+  transform: rotateX(45deg);
+}
+
+.cell {
+  width: 40px;
+  height: 40px;
+  display: inline-block;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  opacity: 0.8;
+  margin: 2px;
+}
+
+.gutter {
+  width: 40px;
+  height: 40px;
+  display: inline-block;
+  margin: 2px;
+  background-size: 30px;
+  background-repeat: no-repeat;
+  text-align: center;
+  opacity: 0.2;
+}
+
+.row {
+  margin: 0 auto;
+  text-align: center;
+}
+
+.rose {
+  cursor: pointer;
+  position: absolute;
+  top: 170px;
+  color: #2e0927;
+
+}
+
+.p1 {
+  background-color: #d90000;
+  opacity: 0.4;
+}
+
+.p2 {
+  background-color: #04756f;
+  opacity: 0.4;
+}
+
+.clicked {
+  opacity: 1.0;
+}
+
+.clickable {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.clickable:hover {
+  -webkit-filter: opacity(30%);
+}
+
+.rotatedir {
+  transform: rotate(45deg);
+}
+
+.rotateboard {
+  transform: rotate(180deg);
+}
