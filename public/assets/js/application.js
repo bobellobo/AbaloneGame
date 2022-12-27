@@ -1,7 +1,3 @@
-import "./css/styles.css";
-import $ from "jquery"
-function App() {
-
 
 ////////
 //Data
@@ -17,14 +13,14 @@ var gutter;
 var remainingMarblesRed ;
 var remainingMarblesBlue;
 var directions = ['nw', 'ne', 'e', 'se', 'sw', 'w'];
-var owners = [0, 1, -1, 0, 0];
+var db = new Firebase("https://abalone-game.firebaseio.com/");
 
 ////////
 //Functions
 ////////
 
 function initBoard() {
-  board = {'board': [
+  db.set({'board': [
   /*  0 */  {marble: 1,  w: null, nw: null, ne: null, e: 1,    se: 6,    sw: 5},
   /*  1 */  {marble: 1,  w: 0,    nw: null, ne: null, e: 2,    se: 7,    sw: 6},
   /*  2 */  {marble: 1,  w: 1,    nw: null, ne: null, e: 3,    se: 8,    sw: 7},
@@ -88,8 +84,13 @@ function initBoard() {
   /* 60 */  {marble: -1, w: 59,   nw: 54,   ne: 55,   e: null, se: null, sw: null}
   ],
   whoseTurn: whoseTurn
-};
-  console.log('Board initialized')
+});
+
+db.on('value', function(dataSnapshot) {
+  board = dataSnapshot.val().board;
+  whoseTurn = dataSnapshot.val().whoseTurn;
+  renderBoard();
+});
 }
 
 var initializeGame = function() {
@@ -100,18 +101,14 @@ var initializeGame = function() {
   renderBoard();
 };
 
-function jumbleBoard() {
-  board.board.forEach(function(idx) {
-    idx.marble = owners[Math.floor(Math.random() * 5)];
-  });
-}
+
 
 
 ////////
 // Directional Functions
 ////////
 
-// gets the irection of the top of the row
+// gets the direction of the top of the row
 function getTopDir() {
   var cell2 = board[selectedMarbles[1]];
   if (cell2.nw === selectedMarbles[0]) {return 'nw';}
@@ -227,14 +224,13 @@ function canIShove() {
 function findValidMarbles(index) {
   valids = [];
   if (selectedMarbles.length === 1) {
-    var cell = board.board[index];
-    console.log(cell)
-    if (board.board[(cell.nw)] && board.board[(cell.nw)].marble === whoseTurn) {valids.push(cell.nw);}
-    if (board.board[(cell.ne)] && board.board[(cell.ne)].marble === whoseTurn && board.board[(cell.ne)]) {valids.push(cell.ne);}
-    if (board.board[(cell.e)] && board.board[(cell.e)].marble === whoseTurn) {valids.push(cell.e);}
-    if (board.board[(cell.se)] && board.board[(cell.se)].marble === whoseTurn) {valids.push(cell.se);}
-    if (board.board[(cell.sw)] && board.board[(cell.sw)].marble === whoseTurn) {valids.push(cell.sw);}
-    if (board.board[(cell.w)] && board.board[(cell.w)].marble === whoseTurn) {valids.push(cell.w);}
+    var cell = board[index];
+    if (board[(cell.nw)] && board[(cell.nw)].marble === whoseTurn) {valids.push(cell.nw);}
+    if (board[(cell.ne)] && board[(cell.ne)].marble === whoseTurn && board[(cell.ne)]) {valids.push(cell.ne);}
+    if (board[(cell.e)] && board[(cell.e)].marble === whoseTurn) {valids.push(cell.e);}
+    if (board[(cell.se)] && board[(cell.se)].marble === whoseTurn) {valids.push(cell.se);}
+    if (board[(cell.sw)] && board[(cell.sw)].marble === whoseTurn) {valids.push(cell.sw);}
+    if (board[(cell.w)] && board[(cell.w)].marble === whoseTurn) {valids.push(cell.w);}
   } else if (selectedMarbles.length === 2) {
     var dir = getTopDir();
 
@@ -258,10 +254,23 @@ function findCellsClasses(arr) {
   }
 }
 
-//reverse the array depending ont he direction
+//reverse the array depending on the direction
 
 function moveMarbles(direction) {
 
+  console.clear()
+  var lastMarbleIndex = !(direction === 'ne' || direction === 'nw' || direction === 'w') ? selectedMarbles[selectedMarbles.length-1]:selectedMarbles[0];
+  console.log('dernière bille de la rangée : ', board[lastMarbleIndex])
+  var nextMarble = objInDir(board[lastMarbleIndex],direction)
+  if(nextMarble.marble === whoseTurn*(-1)){
+    console.log('SHOVE')
+    for(var i = 0;i<selectedMarbles.length;i++){
+      console.log('marble to be switched : ', nextMarble)
+      nextMarble.marble = whoseTurn*(-1);
+      lastMarbleIndex = objInDir(nextMarble, direction).index
+      nextMarble = objInDir(nextMarble, direction)
+    }
+  }
   if(direction === 'ne' || direction === 'nw' || direction === 'w') {
     // check if you're shoving a marble
     selectedMarbles.forEach(function(marbleIdx) {
@@ -270,9 +279,12 @@ function moveMarbles(direction) {
       board[marbleIdx].marble = 0;
      });
 
+     // BLOC POUR DEPLACER LES BILLES ADVERSES
+     //findMarblesToShove(direction)
+
   } else if (direction === 'sw' || direction === 'se' || direction === 'e') {
     //check if the cell is filled already
-    selectedMarbles = selectedMarbles;
+    
     for (var i = selectedMarbles.length - 1; i > -1; i--) {
       var nextIndex = board[selectedMarbles[i]][direction];
 
@@ -280,6 +292,10 @@ function moveMarbles(direction) {
 
       board[selectedMarbles[i]].marble = 0;
     }
+
+     // BLOC POUR DEPLACER LES BILLES ADVERSES
+     //findMarblesToShove(direction)
+
   } else {console.log('wtf')};
 
   // board[selectedMarbles[getTail()]].marble = 0;
@@ -288,17 +304,30 @@ function moveMarbles(direction) {
   renderBoard();
 };
 
+function findMarblesToShove(direction){
+  var lastMarbleIndex = !(direction === 'ne' || direction === 'nw' || direction === 'w') ? selectedMarbles[selectedMarbles.length-1]:selectedMarbles[0];
+  console.log('dernière bille de la rangée : ', board[lastMarbleIndex])
+  if(objInDir(board[lastMarbleIndex],direction).marble === whoseTurn*(-1)){
+    console.log('SHOVE')
+    console.log(whoseTurn)
+    for(var i = 0;i<selectedMarbles.length;i++){
+      objInDir(board[lastMarbleIndex], direction).marble = whoseTurn*(-1);
+      lastMarbleIndex = objInDir(board[lastMarbleIndex], direction).index
+    }
+  }
+
+}
+
 function checkIfWon() {
   remainingMarblesRed = [];
   remainingMarblesBlue = [];
   //if there are fewer than nine of either color the game is won
-  board.board.forEach(function(idx) {
-
+  board.forEach(function(idx) {
     if (idx.marble === 1) {
-      remainingMarblesRed.push(board.board.indexOf(idx));
+      remainingMarblesRed.push(board.indexOf(idx));
     };
     if (idx.marble === -1) {
-      remainingMarblesBlue.push(board.board.indexOf(idx));
+      remainingMarblesBlue.push(board.indexOf(idx));
     };
   });
   if (remainingMarblesBlue.length < 9) {
@@ -332,8 +361,7 @@ function renderArrows() {
 };
 
 function renderBoard() {
-  console.log(board)
-  board.board.forEach(function(cell, idx) {
+  board.forEach(function(cell, idx) {
     var $cellEl = $('[index="' + idx + '"]');
     $cellEl.removeClass('p1 p2 clickable clicked');
     if ($.inArray(idx, selectedMarbles) === 0 || $.inArray(idx, selectedMarbles) === 1 || $.inArray(idx, selectedMarbles) === 2) {
@@ -347,15 +375,16 @@ function renderBoard() {
   });
   renderArrows();
   checkIfWon();
-  renderValids();
+  renderValids();  
+  btn = $('#testBtn')
+  isAITurn() ? btn.hide() : btn.show();
 }
 
 function renderValids() {
   if (selectedMarbles.length === 0) {
-
-      board.board.forEach(function(idx) {
+    board.forEach(function(idx) {
       if (idx.marble === whoseTurn) {
-      valids.push(board.board.indexOf(idx));
+      valids.push(board.indexOf(idx));
     };
   })
 }
@@ -366,7 +395,6 @@ function renderValids() {
 }
 
 
-
 ////////
 //Event Listeners
 ////////
@@ -375,8 +403,8 @@ $( ".cell").click(function(evt) {
     if (selectedMarbles.length < 3) {
       var cellIndex = getCellIndex(this);
       // ignore clicks on empty cells
-      if (board.board[cellIndex].marble === null) return;
-      if (board.board[cellIndex].marble !== whoseTurn) return;
+      if (board[cellIndex].marble === null) return;
+      if (board[cellIndex].marble !== whoseTurn) return;
       if (selectedMarbles.length && !valids.includes(cellIndex)) return;
       if ($.inArray(cellIndex, selectedMarbles) === -1) {
           $(this).addClass("clicked");
@@ -396,10 +424,6 @@ $('.moveArrow').on('click', function(evt) {
   moveMarbles(direction);
 });
 
-$('.jumble').on('click', function(evt) {
-  jumbleBoard();
-  renderBoard();
-});
 
 $('.tilt').on('click', function(evt) {
   $('#board').toggleClass('boardtilt');
@@ -410,134 +434,21 @@ $('.rotate').on('click', function(evt) {
   $('#board').toggleClass('rotateboard');
 });
 
+$('.test').on('click', (evt)=>{
+  makeAIPlay();
+})
+
 initializeGame();
 
 
+////////////////////////////
+// AI 
+///////////////////////////
 
+function isAITurn(){
+  return whoseTurn==-1;
+} 
 
-  return (
-        <div className="App">
-          <h1>Abalone JS</h1>
-
-          <div className='rose'>
-          <i dir="nw" className="nw moveArrow fa fa-arrow-circle-left fa-3x rotatedir"   alt="Move Northwest"> </i>
-          <i dir="ne" className="ne moveArrow fa fa-arrow-circle-up fa-3x rotatedir"     alt="Move Northeast"> </i><br/>
-          <i dir="w"  className="w  moveArrow fa fa-arrow-circle-left fa-3x"             alt="Move West">      </i>
-          <i dir="e"  className="e  moveArrow fa fa-arrow-circle-right fa-3x"            alt="Move East">      </i><br/>
-          <i dir="sw" className="sw moveArrow fa fa-arrow-circle-down fa-3x rotatedir"   alt="Move Southwest"> </i>
-          <i dir="se" className="se moveArrow fa fa-arrow-circle-right fa-3x rotatedir"  alt="Move Southeast"> </i>
-          </div>
-        <div id="container">
-          <div id="board">
-            <div className="row" id="0">
-              <div className="gutter"></div>
-              <div className="gutter"></div>
-              <div className="gutter"></div>
-              <div className="gutter"></div>
-            </div>
-            <div className="row">
-              <div className="gutter"></div>
-              <div className="cell" id="i5" index="0" data-x="i" data-y="5"></div>
-              <div className="cell" id="i6" index="1" data-x="i" data-y="6"></div>
-              <div className="cell" id="i7" index="2" data-x="i" data-y="7"></div>
-              <div className="cell" id="i8" index="3" data-x="i" data-y="8"></div>
-              <div className="cell" id="i9" index="4" data-x="i" data-y="9"></div>
-              <div className="gutter"></div>
-            </div>
-            <div className="row" id="1">
-              <div className="gutter"></div>
-              <div className="cell" id="h4" index="5" data-x="h" data-y="4"></div>
-              <div className="cell" id="h5" index="6" data-x="h" data-y="5"></div>
-              <div className="cell" id="h6" index="7" data-x="h" data-y="6"></div>
-              <div className="cell" id="h7" index="8" data-x="h" data-y="7"></div>
-              <div className="cell" id="h8" index="9" data-x="h" data-y="8"></div>
-              <div className="cell" id="h9" index="10" data-x="h" data-y="9"></div>
-              <div className="gutter"></div>
-            </div>
-            <div className="row" id="2">
-              <div className="gutter"></div>
-              <div className="cell" id="g3" index="11" data-x="g" data-y="3"></div>
-              <div className="cell" id="g4" index="12" data-x="g" data-y="4"></div>
-              <div className="cell" id="g5" index="13" data-x="g" data-y="5"></div>
-              <div className="cell" id="g6" index="14" data-x="g" data-y="6"></div>
-              <div className="cell" id="g7" index="15" data-x="g" data-y="7"></div>
-              <div className="cell" id="g8" index="16" data-x="g" data-y="8"></div>
-              <div className="cell" id="g9" index="17" data-x="g" data-y="9"></div>
-              <div className="gutter"></div>
-            </div>
-            <div className="row" id="3">
-              <div className="gutter"></div>
-              <div className="cell" id="f2" index="18" data-x="f" data-y="2"></div>
-              <div className="cell" id="f3" index="19" data-x="f" data-y="3"></div>
-              <div className="cell" id="f4" index="20" data-x="f" data-y="4"></div>
-              <div className="cell" id="f5" index="21" data-x="f" data-y="5"></div>
-              <div className="cell" id="f6" index="22" data-x="f" data-y="6"></div>
-              <div className="cell" id="f7" index="23" data-x="f" data-y="7"></div>
-              <div className="cell" id="f8" index="24" data-x="f" data-y="8"></div>
-              <div className="cell" id="f9" index="25" data-x="f" data-y="9"></div>
-              <div className="gutter"></div>
-            </div>
-            <div className="row" id="4">
-              <div className="gutter"></div>
-              <div className="cell" id="e1" index="26" data-x="e" data-y="1"></div>
-              <div className="cell" id="e2" index="27" data-x="e" data-y="2"></div>
-              <div className="cell" id="e3" index="28" data-x="e" data-y="3"></div>
-              <div className="cell" id="e4" index="29" data-x="e" data-y="4"></div>
-              <div className="cell" id="e5" index="30" data-x="e" data-y="5"></div>
-              <div className="cell" id="e6" index="31" data-x="e" data-y="6"></div>
-              <div className="cell" id="e7" index="32" data-x="e" data-y="7"></div>
-              <div className="cell" id="e8" index="33" data-x="e" data-y="8"></div>
-              <div className="cell" id="e9" index="34" data-x="e" data-y="9"></div>
-              <div className="gutter"></div>
-            </div>
-            <div className="row" id="5">
-              <div className="gutter"></div>
-              <div className="cell" id="d1" index="35" data-x="d" data-y="1"></div>
-              <div className="cell" id="d2" index="36" data-x="d" data-y="2"></div>
-              <div className="cell" id="d3" index="37" data-x="d" data-y="3"></div>
-              <div className="cell" id="d4" index="38" data-x="d" data-y="4"></div>
-              <div className="cell" id="d5" index="39" data-x="d" data-y="5"></div>
-              <div className="cell" id="d6" index="40" data-x="d" data-y="6"></div>
-              <div className="cell" id="d7" index="41" data-x="d" data-y="7"></div>
-              <div className="cell" id="d8" index="42" data-x="d" data-y="8"></div>
-              <div className="gutter"></div>
-            </div>
-            <div className="row" id="6">
-              <div className="gutter"></div>
-              <div className="cell" id="c1" index="43" data-x="c" data-y="1"></div>
-              <div className="cell" id="c2" index="44" data-x="c" data-y="2"></div>
-              <div className="cell" id="c3" index="45" data-x="c" data-y="3"></div>
-              <div className="cell" id="c4" index="46" data-x="c" data-y="4"></div>
-              <div className="cell" id="c5" index="47" data-x="c" data-y="5"></div>
-              <div className="cell" id="c6" index="48" data-x="c" data-y="6"></div>
-              <div className="cell" id="c7" index="49" data-x="c" data-y="7"></div>
-              <div className="gutter"></div>
-            </div>
-            <div className="row" id="7">
-              <div className="gutter"></div>
-              <div className="cell" id="b1" index="50" data-x="b" data-y="1"></div>
-              <div className="cell" id="b2" index="51" data-x="b" data-y="2"></div>
-              <div className="cell" id="b3" index="52" data-x="b" data-y="3"></div>
-              <div className="cell" id="b4" index="53" data-x="b" data-y="4"></div>
-              <div className="cell" id="b5" index="54" data-x="b" data-y="5"></div>
-              <div className="cell" id="b6" index="55" data-x="b" data-y="6"></div>
-              <div className="gutter"></div>
-            </div>
-            <div className="row" id="8">
-              <div className="gutter"></div>
-              <div className="cell" id="a1" index="56" data-x="a" data-y="1"></div>
-              <div className="cell" id="a2" index="57" data-x="a" data-y="2"></div>
-              <div className="cell" id="a3" index="58" data-x="a" data-y="3"></div>
-              <div className="cell" id="a4" index="59" data-x="a" data-y="4"></div>
-              <div className="cell" id="a5" index="60" data-x="a" data-y="5"></div>
-              <div className="gutter"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    
-    
-  );
+function makeAIPlay(){
+  // HAS TO RETURN BEST MOVE ACCORDING TO MIN MAX ALGORITHM
 }
-
-export default App;
