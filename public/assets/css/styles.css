@@ -4,27 +4,29 @@ body {
 }
 
 .textbox {
-  font-family: 'Bitter', serif;
+  font-family: "Bitter", serif;
   color: #2e0927;
 }
 
-h1, h2 {
+h1,
+h2 {
   display: inline;
 }
 
-.jumble, .tilt, .rotate {
+.jumble,
+.tilt,
+.rotate {
   cursor: pointer;
   color: #2e0927;
 }
 
 .containertilt {
-      -webkit-perspective: 600px;
+  -webkit-perspective: 600px;
   perspective: 600px;
-
 }
 
 .boardtilt {
-      -webkit-transform: rotateX(deg);
+  -webkit-transform: rotateX(deg);
   transform: rotateX(45deg);
 }
 
@@ -72,12 +74,12 @@ h1, h2 {
 }
 
 .highlight {
-  background-color: #00ff48;
+  background-color: #000000;
   opacity: 0.5;
 }
 
 .clicked {
-  opacity: 1.0;
+  opacity: 1;
 }
 
 .clickable {
@@ -97,7 +99,6 @@ h1, h2 {
   transform: rotate(180deg);
 }
 
-.test{
+.test {
   cursor: pointer;
 }
-
