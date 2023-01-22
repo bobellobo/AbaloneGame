@@ -143,7 +143,6 @@ function possibleMoveDirections() {
 
 function canMarblesMove(dir) {
   return selectedMarbles.every(function (m) {
-    console.log(m)
     return (
       (board[m][dir] && board[board[m][dir]].marble === 0) ||
       selectedMarbles.includes(board[m][dir])
@@ -191,13 +190,11 @@ function canIShove(marbles) {
     for (var i = enemyDirsArray.length - 1; i >= 0; i--) {
       var dir = enemyDirsArray[i];
       var targetObj = board[lastMarble[dir]];
-      console.log(targetObj)
       var northTargetObj = board[firstMarble[dir]];
 
       if (["se", "sw", "e"].indexOf(dir) > -1) {
         if (board[targetObj[dir]] && board[targetObj[dir]].marble === 0) {
         } else if (!targetObj.hasOwnProperty(dir)) {
-          console.log("gutterball to the " + dir);
           validMurderDirs.push(dir);
         } else if (
           board[targetObj[dir]] &&
@@ -212,7 +209,6 @@ function canIShove(marbles) {
           canShove = false;
         }
         if (enemyBattleLines < marbles.length && canShove) {
-          console.log("Can shove", dir);
           validShoveDirs.push(dir);
         }
       }
@@ -229,7 +225,6 @@ function canIShove(marbles) {
           enemyBattleLines++;
           northTargetObj = board[northTargetObj[dir]];
         } else if (!northTargetObj.hasOwnProperty(dir)) {
-          console.log("gutterball to the " + dir);
           validMurderDirs.push(dir);
         } else if (
           board[northTargetObj[dir]] &&
@@ -309,7 +304,6 @@ function findCellsClasses(arr) {
 //reverse the array depending on the direction
 
 function moveMarbles(marbles, direction) {
-  console.clear();
   var lastMarbleIndex = !(
     direction === "ne" ||
     direction === "nw" ||
@@ -349,11 +343,7 @@ function moveMarbles(marbles, direction) {
   whoseTurn *= -1;
   renderBoard();
 }
-/*
-function moveMarbles(marbles, direction) {
-  selectedMarbles = marbles;
-  moveMarbles(direction);
-}*/
+
 
 function countMarbleToShove(lastMarbleIndex, direction) {
   var count = 0;
@@ -369,7 +359,6 @@ function countMarbleToShove(lastMarbleIndex, direction) {
 }
 
 function isOpponentMarble(marble) {
-  console.log("marble : ", marble);
   return marble !== undefined && marble.marble == whoseTurn * -1;
 }
 
@@ -790,18 +779,101 @@ function isAITurn() {
 function makeAIPlay() {
   // HAS TO RETURN BEST MOVE ACCORDING TO MIN MAX ALGORITHM
   const legalMoves = getLegalMoves();
-  console.log(legalMoves)
-  if(legalMoves!=null&&legalMoves.length>0){
-    const move = legalMoves[getRandomInt(legalMoves.length)]
-    console.log('chosen move : ', move)
-    const marbles = Object.values(move.marbles)
-    console.log(marbles, ' || ', move.direction)
-
-    moveMarbles(getMarbleIndexes(marbles), move.direction)
+  if(legalMoves!=null && legalMoves.length>0){
+    
+    // Evaluate moves with minMax algorithm
+    
+    evaluatedMoves = minMax(legalMoves)
+    console.log(evaluatedMoves)
+    //const move = legalMoves[getRandomInt(legalMoves.length)] // Randomly pick a move
+    const move = evaluatedMoves[0];
+    moveMarbles(getMarbleIndexes(Object.values(move.marbles)), move.direction)
   }
   renderBoard();
-
 }
+
+function minMax(moves){
+  const evaluatedMoves = moves.map((move)=>{
+    return {...move, note : evaluateMove(move)}
+  })
+  evaluatedMoves.sort((a,b)=>{
+    return (a.note < b.note) ? 1 : -1
+  })
+  return evaluatedMoves
+}
+
+function evaluateMove(move){
+  const newBoard = moveMarblesForBoardEvaluation(getMarbleIndexes(Object.values(move.marbles)), move.direction)
+  const centerProximity = evaluateCenterProximity(newBoard, whoseTurn);
+  return centerProximity
+}
+
+
+// Evaluation methods
+function evaluateCenterProximity(newBoard, whoseTurn){
+  const HYPER_CENTER = [21, 22, 29, 30, 31, 38, 39];
+  const FIRST_BELT = [13, 14, 15, 20, 23, 28, 32, 37, 40, 45, 46, 47];
+  const BANLIEUE = [6, 7, 8, 9, 12, 16, 19, 24, 27, 33, 36, 41, 44, 48, 51, 52, 53, 54]
+  const EDGE = [0, 1, 2, 3, 4, 5, 10, 11, 17, 18, 25, 26, 34, 35, 42, 43, 47, 50, 55, 56, 57, 58, 59, 60]
+  let hyperCenterMarbles = 0;
+  let firstBeltMarbles = 0;
+  let banlieueMarbles = 0;
+  let edgeMarbles = 0;
+  Object.values(newBoard).forEach((marble)=>{
+    const index = newBoard.indexOf(marble);
+    if(index!=-1){
+      if(HYPER_CENTER.includes(index) && newBoard[index].marble===whoseTurn){hyperCenterMarbles+=1}
+      if(FIRST_BELT.includes(index)&& newBoard[index].marble===whoseTurn){firstBeltMarbles+=1}
+      if(BANLIEUE.includes(index)&& newBoard[index].marble===whoseTurn){banlieueMarbles+=1}
+      if(EDGE.includes(index)&& newBoard[index].marble===whoseTurn){edgeMarbles+=1}
+    }
+  })
+  return Math.round(edgeMarbles*1+banlieueMarbles*2+firstBeltMarbles*3+hyperCenterMarbles*5)
+}
+
+
+
+function moveMarblesForBoardEvaluation(marbles, direction) {
+  var newBoard = JSON.parse(JSON.stringify(board));
+  var lastMarbleIndex = !(
+    direction === "ne" ||
+    direction === "nw" ||
+    direction === "w"
+  )
+    ? marbles[marbles.length - 1]
+    : marbles[0];
+  var nextMarble = objInDir(newBoard[lastMarbleIndex], direction);
+  if (nextMarble.marble === whoseTurn * -1) {
+    marbleToShove = countMarbleToShove(lastMarbleIndex, direction);
+    for (var i = 0; i <= marbleToShove; i++) {
+      nextMarble.marble = whoseTurn * -1;
+      nextMarble = objInDir(nextMarble, direction);
+    }
+  }
+  if (direction === "ne" || direction === "nw" || direction === "w") {
+    // check if you're shoving a marble
+    marbles.forEach(function (marbleIdx) {
+      var nextIndex = newBoard[marbleIdx][direction];
+      newBoard[nextIndex].marble = newBoard[marbleIdx].marble;
+      newBoard[marbleIdx].marble = 0;
+    });
+  } else if (direction === "sw" || direction === "se" || direction === "e") {
+    //check if the cell is filled already
+
+    for (var i = marbles.length - 1; i > -1; i--) {
+      var nextIndex = newBoard[marbles[i]][direction];
+
+      newBoard[nextIndex].marble = newBoard[marbles[i]].marble;
+
+      newBoard[marbles[i]].marble = 0;
+    }
+  } else {
+    console.log("wtf");
+  }
+  return newBoard;
+}
+
+
 
 function getMarbleIndexes(marbles){
   return marbles.map((marble)=>{
