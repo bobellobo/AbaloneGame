@@ -523,28 +523,194 @@ initializeGame();
 function coupsPossibles() {
   moves1 = RecolteMove1();
   moves2 = RecolteMove2(moves1);
-  moves3 = new Array();
-  for (i = 0; i < moves2.length; i++) {
-    test = moves2[i].direction;
-    oppositeDirection = getOppDir(moves2[i].direction);
-    marbleOppositeDirectionFromMarble2 =
-      moves2[i].marbles.piece2[oppositeDirection];
-    if (
-      board[marbleOppositeDirectionFromMarble2] != null &&
-      board[marbleOppositeDirectionFromMarble2].marble == whoseTurn
-    ) {
-      let listePieces = {
-        piece1: moves2[i].marbles.piece1,
-        piece2: moves2[i].marbles.piece2,
-        piece3: board[marbleOppositeDirectionFromMarble2],
-      };
-      let auxMove3 = {
-        marbles: listePieces,
-        direction: moves2[i].direction,
-      };
-      moves3.push(auxMove3);
+  moves3 = RecolteMove3(moves1, moves2);
+
+  console.log("Yes");
+}
+
+function RecolteMove3Indirect(moves1, moves2) {
+  moves3ID = new Array();
+  if (moves1 != null && moves2 != null) {
+    for (j = 0; j < directions.length; j++) {
+      moves1Direction = new Array();
+      moves2Direction = new Array();
+      direction = directions[j];
+      for (i = 0; i < moves1.length; i++) {
+        if (moves1[i].direction == direction) {
+          moves1Direction.push(moves1[i].marbles.piece1);
+        }
+      }
+      for (i = 0; i < moves2.length; i++) {
+        if (moves2[i].direction == direction) {
+          moves2Direction.push(moves2[i].marbles);
+        }
+      }
+      auxMoves1Direction = new Array();
+      auxMoves1Direction = auxMoves1Direction.concat(moves1Direction);
+      auxMoves2Direction = new Array();
+      auxMoves2Direction = auxMoves2Direction.concat(moves2Direction);
+
+      for (k = 0; k < moves2Direction.length; k++) {
+        for (
+          m = 0;
+          m < 3;
+          m++ //3 car directions.length /2 ==> Permet d'éviter les doublets en faisant une rotation compltète
+        ) {
+          if (
+            board[auxMoves2Direction[k].piece1[directions[m]]] ==
+            auxMoves2Direction[k].piece2
+          ) {
+            if (
+              auxMoves1Direction.includes(
+                board[auxMoves2Direction[k].piece1[getOppDir(directions[m])]]
+              )
+            ) {
+              let listePieces = {
+                piece1: auxMoves2Direction[k].piece1,
+                piece2: auxMoves2Direction[k].piece2,
+                piece3:
+                  board[auxMoves2Direction[k].piece1[getOppDir(directions[m])]],
+              };
+              let auxMove3 = {
+                marbles: listePieces,
+                direction: direction,
+              };
+              moves3ID.push(auxMove3);
+            }
+          } else {
+            if (
+              board[auxMoves2Direction[k].piece1[directions[m]]] ==
+              auxMoves2Direction[k].piece2
+            ) {
+              if (
+                auxMoves1Direction.includes(
+                  board[auxMoves2Direction[k].piece2[getOppDir(directions[m])]]
+                )
+              ) {
+                let listePieces = {
+                  piece1: auxMoves2Direction[k].piece1,
+                  piece2: auxMoves2Direction[k].piece2,
+                  piece3:
+                    board[
+                      auxMoves2Direction[k].piece2[getOppDir(directions[m])]
+                    ],
+                };
+                let auxMove3 = {
+                  marbles: listePieces,
+                  direction: direction,
+                };
+                moves3ID.push(auxMove3);
+              }
+            }
+          }
+        }
+      }
     }
   }
+  return moves3ID;
+}
+
+function RecolteMove3Direct(moves2) {
+  moves3 = new Array();
+  for (i = 0; i < moves2.length; i++) {
+    if (
+      board[moves2[i].marbles.piece1[moves2[i].direction]] ==
+      moves2[i].marbles.piece2
+    ) {
+      if (
+        board[moves2[i].marbles.piece1[getOppDir(moves2[i].direction)]] !=
+          null &&
+        board[moves2[i].marbles.piece1[getOppDir(moves2[i].direction)]]
+          .marble == whoseTurn
+      ) {
+        let listePieces = {
+          piece1: moves2[i].marbles.piece1,
+          piece2: moves2[i].marbles.piece2,
+          piece3:
+            board[moves2[i].marbles.piece1[getOppDir(moves2[i].direction)]],
+        };
+        let auxMove3 = {
+          marbles: listePieces,
+          direction: moves2[i].direction,
+        };
+        moves3.push(auxMove3);
+      }
+    } else {
+      if (
+        board[moves2[i].marbles.piece2[moves2[i].direction]] ==
+        moves2[i].marbles.piece1
+      ) {
+        if (
+          board[moves2[i].marbles.piece2[getOppDir(moves2[i].direction)]] !=
+            null &&
+          board[moves2[i].marbles.piece1[getOppDir(moves2[i].direction)]]
+            .marble == whoseTurn
+        ) {
+          let listePieces = {
+            piece1: moves2[i].marbles.piece1,
+            piece2: moves2[i].marbles.piece2,
+            piece3: board[moves2[i].marbles.piece1[moves2[i].direction]],
+          };
+          let auxMove3 = {
+            marbles: listePieces,
+            direction: moves2[i].direction,
+          };
+          moves3.push(auxMove3);
+        }
+      }
+    }
+  }
+  return moves3;
+}
+
+function RecolteMove3(moves1, moves2) {
+  return RecolteMove3Direct(moves2).concat(
+    RecolteMove3Indirect(moves1, moves2)
+  );
+}
+
+function RecolteMove2Indirect(moves1) {
+  moves2ID = new Array();
+  for (j = 0; j < directions.length; j++) {
+    moves1Direction = new Array();
+    direction = directions[j];
+    for (i = 0; i < moves1.length; i++) {
+      if (moves1[i].direction == direction) {
+        moves1Direction.push(moves1[i].marbles.piece1);
+      }
+    }
+    auxMoves1Direction = new Array();
+    auxMoves1Direction = auxMoves1Direction.concat(moves1Direction);
+    l = moves1Direction.length;
+    for (k = 0; k < l; k++) {
+      auxMarble = auxMoves1Direction[0];
+      auxMoves1Direction = auxMoves1Direction.splice(
+        1,
+        auxMoves1Direction.length - 1
+      );
+
+      //for (l = 0; l < moves1Direction.length; l++) {
+      for (m = 0; m < directions.length; m++) {
+        if (
+          auxMoves1Direction.length > 0 &&
+          board[auxMarble[directions[m]]] != null &&
+          auxMoves1Direction.includes(board[auxMarble[directions[m]]])
+        ) {
+          let listePieces = {
+            piece1: auxMarble,
+            piece2: board[auxMarble[directions[m]]],
+          };
+          let auxMove2 = {
+            marbles: listePieces,
+            direction: direction,
+          };
+          moves2ID.push(auxMove2);
+        }
+        //}
+      }
+    }
+  }
+  return moves2ID;
 }
 
 function RecolteMove1() {
@@ -593,48 +759,6 @@ function RecolteMove1() {
   return moves1;
 }
 
-/*function RecolteMove2(moves1) {
-  moves2 = new Array();
-  for (j = 0; j < directions.length; j++) {
-    moves1Direction = new Array();
-    direction = directions[j];
-    for (i = 0; i < moves1.length; i++) {
-      oppositeDirection = getOppDir(moves1[i].direction); //direction = propriété ici
-
-      marbleOppositeDirectionFromMarble1 =
-        moves1[i].marbles.piece1[oppositeDirection];
-      // On regarde les pièces qui se suivent --> Voir Bud, si c'est pas clair. C'est pas compliqué mais c'est plus simple à expliquer avec un schéma
-      if (direction == oppositeDirection) {
-        if (
-          board[marbleOppositeDirectionFromMarble1] != null &&
-          board[marbleOppositeDirectionFromMarble1].marble == whoseTurn
-        ) {
-          let listePieces = {
-            piece1: moves1[i].marbles.piece1,
-            piece2: board[marbleOppositeDirectionFromMarble1],
-          };
-          let auxMove2 = {
-            marbles: listePieces,
-            direction: moves1[i].direction,
-          };
-
-          moves2.push(auxMove2);
-        }
-      } else {
-        if (moves1[i].direction == direction) {
-          test = moves1[i].direction;
-          moves1Direction.push(moves1[i]);
-          for(k=0; k<moves1Direction.length; k++)
-          {
-
-          }
-        }
-      }
-    }
-    console.log("Test");
-  }
-}*/
-
 function RecolteMove2(moves1) {
   return RecolteMove2Direct(moves1).concat(RecolteMove2Indirect(moves1));
 }
@@ -662,44 +786,6 @@ function RecolteMove2Direct(moves1) {
     }
   }
   return moves2D;
-}
-
-function RecolteMove2Indirect(moves1) {
-  moves2ID = new Array();
-  for (j = 0; j < directions.length; j++) {
-    moves1Direction = new Array();
-    direction = directions[j];
-    for (i = 0; i < moves1.length; i++) {
-      if (moves1[i].direction == direction) {
-        moves1Direction.push(moves1[i].marbles.piece1);
-      }
-    }
-    for (k = 0; k < moves1Direction.length; k++) {
-      auxMarble = moves1Direction[k];
-      moves1Direction = moves1Direction.splice(1, moves1Direction.length - 1);
-      for (l = 0; l < moves1Direction.length; l++) {
-        for (m = 0; m < directions.length; m++) {
-          test = board[auxMarble[directions[m]]];
-          if (
-            board[auxMarble[directions[m]]] != null &&
-            moves1Direction.length > 0 &&
-            moves1Direction.includes(board[auxMarble[direction[m]]])
-          ) {
-            let listePieces = {
-              piece1: auxMarble,
-              piece2: board[auxMarble[direction[m]]],
-            };
-            let auxMove2 = {
-              marbles: listePieces,
-              direction: direction,
-            };
-            moves2ID.push(auxMove2);
-          }
-        }
-      }
-    }
-  }
-  return moves2ID;
 }
 
 function canMarblesMoveBud2Pieces(marbles, dir) {
