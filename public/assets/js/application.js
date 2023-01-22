@@ -740,10 +740,7 @@ function RecolteMove1() {
         indexPieceAdjacente = PieceATester[direction];
         PieceAdjacente = board[indexPieceAdjacente];
 
-        if (
-          PieceAdjacente.marble == 0 ||
-          (PieceAdjacente.marble == whoseTurn * PiecesJoueur[i].marble) === -1
-        ) {
+        if (PieceAdjacente.marble != PieceATester.marble) {
           let listePieces = {
             piece1: PiecesJoueur[i],
           };
