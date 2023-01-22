@@ -143,6 +143,7 @@ function possibleMoveDirections() {
 
 function canMarblesMove(dir) {
   return selectedMarbles.every(function (m) {
+    console.log(m)
     return (
       (board[m][dir] && board[board[m][dir]].marble === 0) ||
       selectedMarbles.includes(board[m][dir])
@@ -307,15 +308,15 @@ function findCellsClasses(arr) {
 
 //reverse the array depending on the direction
 
-function moveMarbles(direction) {
+function moveMarbles(marbles, direction) {
   console.clear();
   var lastMarbleIndex = !(
     direction === "ne" ||
     direction === "nw" ||
     direction === "w"
   )
-    ? selectedMarbles[selectedMarbles.length - 1]
-    : selectedMarbles[0];
+    ? marbles[marbles.length - 1]
+    : marbles[0];
   var nextMarble = objInDir(board[lastMarbleIndex], direction);
   if (nextMarble.marble === whoseTurn * -1) {
     marbleToShove = countMarbleToShove(lastMarbleIndex, direction);
@@ -326,7 +327,7 @@ function moveMarbles(direction) {
   }
   if (direction === "ne" || direction === "nw" || direction === "w") {
     // check if you're shoving a marble
-    selectedMarbles.forEach(function (marbleIdx) {
+    marbles.forEach(function (marbleIdx) {
       var nextIndex = board[marbleIdx][direction];
       board[nextIndex].marble = board[marbleIdx].marble;
       board[marbleIdx].marble = 0;
@@ -334,12 +335,12 @@ function moveMarbles(direction) {
   } else if (direction === "sw" || direction === "se" || direction === "e") {
     //check if the cell is filled already
 
-    for (var i = selectedMarbles.length - 1; i > -1; i--) {
-      var nextIndex = board[selectedMarbles[i]][direction];
+    for (var i = marbles.length - 1; i > -1; i--) {
+      var nextIndex = board[marbles[i]][direction];
 
-      board[nextIndex].marble = board[selectedMarbles[i]].marble;
+      board[nextIndex].marble = board[marbles[i]].marble;
 
-      board[selectedMarbles[i]].marble = 0;
+      board[marbles[i]].marble = 0;
     }
   } else {
     console.log("wtf");
@@ -453,7 +454,7 @@ function renderBoard() {
   checkIfWon();
   renderValids();
   btn = $("#testBtn");
-  isAITurn() ? btn.hide() : btn.show();
+  isAITurn() ? btn.show() : btn.hide();
 }
 
 function renderValids() {
@@ -470,58 +471,15 @@ function renderValids() {
   });
 }
 
-////////
-//Event Listeners
-////////
 
-$(".cell").click(function (evt) {
-  if (selectedMarbles.length < 3) {
-    var cellIndex = getCellIndex(this);
-
-    // ignore clicks on empty cells
-    if (board[cellIndex].marble === null) return;
-    if (board[cellIndex].marble !== whoseTurn) return;
-    if (selectedMarbles.length && !valids.includes(cellIndex)) return;
-    if ($.inArray(cellIndex, selectedMarbles) === -1) {
-      $(this).addClass("clicked");
-      selectedMarbles.push(cellIndex);
-      selectedMarbles.sort(function (a, b) {
-        return a - b;
-      });
-      findValidMarbles(cellIndex);
-      getLegalMoves();
-    }
-  }
-  renderBoard();
-});
-
-$(".moveArrow").on("click", function (evt) {
-  direction = $(this).attr("dir");
-  moveMarbles(direction);
-});
-
-$(".tilt").on("click", function (evt) {
-  $("#board").toggleClass("boardtilt");
-  $("#container").toggleClass("containertilt");
-});
-
-$(".rotate").on("click", function (evt) {
-  $("#board").toggleClass("rotateboard");
-});
-
-// $('.test').on('click', (evt)=>{
-//   makeAIPlay();
-// })
-
-initializeGame();
 
 ///////////////////////////
 //Les différents coups possibles
 ///////////////////////////
 function getLegalMoves() {
-  console.log(getMoves())
-  moves = filterCanShoveMoves(getMoves());
-  console.log(moves)
+  moves = getMoves();
+
+  return moves
 }
 
 function filterCanShoveMoves(moves){
@@ -826,26 +784,75 @@ function canMarblesMove(dir) {
 ///////////////////////////
 
 function isAITurn() {
-  return whoseTurn == -1;
+  return whoseTurn == 1;
 }
 
 function makeAIPlay() {
   // HAS TO RETURN BEST MOVE ACCORDING TO MIN MAX ALGORITHM
-  if (whoseTurn == 1) {
-    // pick a random marble amongst AIs marbles:
-    var redMarblesIndexes = getRemainingRedMarblesIndexes();
-    var randomIndex = getRandomInt(redMarblesIndexes.length);
-    var marbleIndex = redMarblesIndexes[randomIndex];
-    var marble = board[marbleIndex];
-    marble.marble = 2;
-    // pick a random amount of marbles
-    howManyMarbles = getRandomInt(3);
-    // chose a random direction
-    randomDirection = directions[getRandomInt(directions.length)];
-    moveMarbles(marble, "w");
-    // evaluate
-    renderBoard();
+  const legalMoves = getLegalMoves();
+  console.log(legalMoves)
+  if(legalMoves!=null&&legalMoves.length>0){
+    const move = legalMoves[getRandomInt(legalMoves.length)]
+    console.log('chosen move : ', move)
+    const marbles = Object.values(move.marbles)
+    console.log(marbles, ' || ', move.direction)
+
+    moveMarbles(getMarbleIndexes(marbles), move.direction)
+  }
+  renderBoard();
+
+}
+
+function getMarbleIndexes(marbles){
+  return marbles.map((marble)=>{
+    return board.indexOf(marble)
+  })
+  .filter((index)=>(index!=-1))
+}
+
+////////
+//Event Listeners
+////////
+
+$(".cell").click(function (evt) {
+  if (selectedMarbles.length < 3) {
+    var cellIndex = getCellIndex(this);
+    // ignore clicks on empty cells
+    if (board[cellIndex].marble === null) return;
+    if (board[cellIndex].marble !== whoseTurn) return;
+    if (selectedMarbles.length && !valids.includes(cellIndex)) return;
+    if ($.inArray(cellIndex, selectedMarbles) === -1) {
+      $(this).addClass("clicked");
+      selectedMarbles.push(cellIndex);
+      selectedMarbles.sort(function (a, b) {
+        return a - b;
+      });
+      findValidMarbles(cellIndex);
+    }
+  }
+  renderBoard();
+});
+
+$(".moveArrow").on("click", function (evt) {
+  direction = $(this).attr("dir");
+  moveMarbles(selectedMarbles, direction);
+});
+
+$(".tilt").on("click", function (evt) {
+  $("#board").toggleClass("boardtilt");
+  $("#container").toggleClass("containertilt");
+});
+
+$(".rotate").on("click", function (evt) {
+  $("#board").toggleClass("rotateboard");
+});
+
+$('.AIButton').on('click', (evt)=>{
+  if (isAITurn()) { // 
+    makeAIPlay();
   } else {
     console.log("error wrong turn");
   }
-}
+})
+
+initializeGame();
