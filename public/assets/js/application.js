@@ -150,47 +150,47 @@ function canMarblesMove(dir) {
   });
 }
 
-function nearbyEnemies() {
+function nearbyEnemies(marbles) {
   return directions.filter(function (dir) {
-    return isThereAnEnemyAdjacent(dir);
+    return isThereAnEnemyAdjacent(dir, marbles);
   });
 }
 
-function isThereAnEnemyAdjacent(dir) {
-  return selectedMarbles.every(function (m) {
+function isThereAnEnemyAdjacent(dir, marbles) {
+  return marbles.every(function (m) {
     return (
       (board[m][dir] != null &&
         board[board[m][dir]].marble === whoseTurn * -1) ||
-      selectedMarbles.includes(board[m][dir])
+        marbles.includes(board[m][dir])
     );
   });
 }
 
-function rightSouthMostMarble() {
-  return board[selectedMarbles[selectedMarbles.length - 1]];
+function rightSouthMostMarble(marbles) {
+  return board[marbles[marbles.length - 1]];
 }
 
 function objInDir(thisMarble, dir) {
   return board[thisMarble[dir]] ?? {};
 }
 
-function leftNorthMostMarble() {
-  return board[selectedMarbles[0]];
+function leftNorthMostMarble(marbles) {
+  return board[marbles[0]];
 }
 
-function canIShove() {
-  if (selectedMarbles.length > 1) {
+function canIShove(marbles) {
+  if (marbles.length > 1) {
     var canShove = true;
     var validShoveDirs = [];
-    var enemyDirsArray = nearbyEnemies(); // ["ne"]
-    var lastMarble = rightSouthMostMarble();
-    var firstMarble = leftNorthMostMarble();
+    var enemyDirsArray = nearbyEnemies(marbles); // ["ne"]
+    var lastMarble = rightSouthMostMarble(marbles);
+    var firstMarble = leftNorthMostMarble(marbles);
     var enemyBattleLines = 1;
     var validMurderDirs = [];
-
     for (var i = enemyDirsArray.length - 1; i >= 0; i--) {
       var dir = enemyDirsArray[i];
       var targetObj = board[lastMarble[dir]];
+      console.log(targetObj)
       var northTargetObj = board[firstMarble[dir]];
 
       if (["se", "sw", "e"].indexOf(dir) > -1) {
@@ -210,7 +210,7 @@ function canIShove() {
         ) {
           canShove = false;
         }
-        if (enemyBattleLines < selectedMarbles.length && canShove) {
+        if (enemyBattleLines < marbles.length && canShove) {
           console.log("Can shove", dir);
           validShoveDirs.push(dir);
         }
@@ -316,7 +316,6 @@ function moveMarbles(direction) {
   )
     ? selectedMarbles[selectedMarbles.length - 1]
     : selectedMarbles[0];
-  console.log("dernière bille de la rangée : ", board[lastMarbleIndex]);
   var nextMarble = objInDir(board[lastMarbleIndex], direction);
   if (nextMarble.marble === whoseTurn * -1) {
     marbleToShove = countMarbleToShove(lastMarbleIndex, direction);
@@ -420,7 +419,7 @@ function renderArrows() {
   $(".moveArrow").hide();
   $(".moveArrow").css("color", "");
   var nearbyOpenCells = findCellsClasses(possibleMoveDirections());
-  var validShoveDirs = findCellsClasses(canIShove());
+  var validShoveDirs = findCellsClasses(canIShove(selectedMarbles));
 
   if (selectedMarbles.length > 0) {
     $(nearbyOpenCells).show();
@@ -478,7 +477,6 @@ function renderValids() {
 $(".cell").click(function (evt) {
   if (selectedMarbles.length < 3) {
     var cellIndex = getCellIndex(this);
-    //console.log(cellIndex);
 
     // ignore clicks on empty cells
     if (board[cellIndex].marble === null) return;
@@ -491,7 +489,7 @@ $(".cell").click(function (evt) {
         return a - b;
       });
       findValidMarbles(cellIndex);
-      coupsPossibles();
+      getLegalMoves();
     }
   }
   renderBoard();
@@ -520,15 +518,31 @@ initializeGame();
 ///////////////////////////
 //Les différents coups possibles
 ///////////////////////////
-function coupsPossibles() {
-  moves1 = RecolteMove1();
-  moves2 = RecolteMove2(moves1);
-  moves3 = RecolteMove3(moves1, moves2);
-
-  console.log("Yes");
+function getLegalMoves() {
+  console.log(getMoves())
+  moves = filterCanShoveMoves(getMoves());
+  console.log(moves)
 }
 
-function RecolteMove3Indirect(moves1, moves2) {
+function filterCanShoveMoves(moves){
+  return moves.filter((move)=>{
+    const indexes = Object.values(move.marbles).map((piece)=>{
+      if(board.indexOf(piece)!=null){
+        return board.indexOf(piece)
+      }
+    }).filter((el)=>el!=null)
+    return canIShove(indexes)!=undefined&&canIShove(indexes).length!=0
+  })
+}
+
+function getMoves(){
+  moves1 = getOneMarbleMoves();
+  moves2 = getTwoMarbleMoves(moves1);
+  moves3 = getThreeMarbleMoves(moves1,moves2);
+  return moves1.concat(moves2.concat(moves3));
+}
+
+function getThreeMarbleMovesIndirect(moves1, moves2) {
   moves3ID = new Array();
   if (moves1 != null && moves2 != null) {
     for (j = 0; j < directions.length; j++) {
@@ -610,7 +624,7 @@ function RecolteMove3Indirect(moves1, moves2) {
   return moves3ID;
 }
 
-function RecolteMove3Direct(moves2) {
+function getThreeMarbleMovesDirect(moves2) {
   moves3 = new Array();
   for (i = 0; i < moves2.length; i++) {
     if (
@@ -663,13 +677,13 @@ function RecolteMove3Direct(moves2) {
   return moves3;
 }
 
-function RecolteMove3(moves1, moves2) {
-  return RecolteMove3Direct(moves2).concat(
-    RecolteMove3Indirect(moves1, moves2)
+function getThreeMarbleMoves(moves1, moves2) {
+  return getThreeMarbleMovesDirect(moves2).concat(
+    getThreeMarbleMovesIndirect(moves1, moves2)
   );
 }
 
-function RecolteMove2Indirect(moves1) {
+function getTwoMarbleMovesIndirect(moves1) {
   moves2ID = new Array();
   for (j = 0; j < directions.length; j++) {
     moves1Direction = new Array();
@@ -713,7 +727,7 @@ function RecolteMove2Indirect(moves1) {
   return moves2ID;
 }
 
-function RecolteMove1() {
+function getOneMarbleMoves() {
   // On commence par trouver les pièces des joueurs
   c = 0;
   i = 0;
@@ -756,11 +770,11 @@ function RecolteMove1() {
   return moves1;
 }
 
-function RecolteMove2(moves1) {
-  return RecolteMove2Direct(moves1).concat(RecolteMove2Indirect(moves1));
+function getTwoMarbleMoves(moves1) {
+  return getTwoMarbleMovesDirect(moves1).concat(getTwoMarbleMovesIndirect(moves1));
 }
 
-function RecolteMove2Direct(moves1) {
+function getTwoMarbleMovesDirect(moves1) {
   moves2D = new Array();
   for (i = 0; i < moves1.length; i++) {
     oppositeDirection = getOppDir(moves1[i].direction); //direction = propriété ici
@@ -828,7 +842,6 @@ function makeAIPlay() {
     howManyMarbles = getRandomInt(3);
     // chose a random direction
     randomDirection = directions[getRandomInt(directions.length)];
-    console.log(randomDirection);
     moveMarbles(marble, "w");
     // evaluate
     renderBoard();
