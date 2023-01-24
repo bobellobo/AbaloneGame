@@ -41,7 +41,7 @@ function initBoard() {
     /* 19 */ { marble: 0, w: 18, nw: 11, ne: 12, e: 20, se: 28, sw: 27 },
     /* 20 */ { marble: 0, w: 19, nw: 12, ne: 13, e: 21, se: 29, sw: 28 },
     /* 21 */ { marble: 0, w: 20, nw: 13, ne: 14, e: 22, se: 30, sw: 29 },
-    /* 22 */ { marble: -1, w: 21, nw: 14, ne: 15, e: 23, se: 31, sw: 30 },
+    /* 22 */ { marble: 0, w: 21, nw: 14, ne: 15, e: 23, se: 31, sw: 30 },
     /* 23 */ { marble: 0, w: 22, nw: 15, ne: 16, e: 24, se: 32, sw: 31 },
     /* 24 */ { marble: 0, w: 23, nw: 16, ne: 17, e: 25, se: 33, sw: 32 },
     /* 25 */ { marble: 0, w: 24, nw: 17, ne: null, e: null, se: 34, sw: 33 },
@@ -178,7 +178,7 @@ function leftNorthMostMarble(marbles) {
   return board[marbles[0]];
 }
 
-function canIShove(marbles) {
+function canIShove(marbles, _whoseTurn) {
   if (marbles.length > 1) {
     var canShove = true;
     var validShoveDirs = [];
@@ -199,13 +199,13 @@ function canIShove(marbles) {
           validMurderDirs.push(dir);
         } else if (
           board[targetObj[dir]] &&
-          board[targetObj[dir]].marble === whoseTurn * -1
+          board[targetObj[dir]].marble === _whoseTurn * -1
         ) {
           enemyBattleLines++;
           targetObj = board[targetObj[dir]];
         } else if (
           board[targetObj[dir]] &&
-          board[targetObj[dir]].marble === whoseTurn
+          board[targetObj[dir]].marble === _whoseTurn
         ) {
           canShove = false;
         }
@@ -221,7 +221,7 @@ function canIShove(marbles) {
         ) {
         } else if (
           board[northTargetObj[dir]] &&
-          board[northTargetObj[dir]].marble === whoseTurn * -1
+          board[northTargetObj[dir]].marble === _whoseTurn * -1
         ) {
           enemyBattleLines++;
           northTargetObj = board[northTargetObj[dir]];
@@ -229,7 +229,7 @@ function canIShove(marbles) {
           validMurderDirs.push(dir);
         } else if (
           board[northTargetObj[dir]] &&
-          board[northTargetObj[dir]].marble === whoseTurn
+          board[northTargetObj[dir]].marble === _whoseTurn
         ) {
           canShove = false;
         } else if (
@@ -378,6 +378,7 @@ function checkIfWon() {
   }
 }
 
+
 function getRemainingRedMarblesIndexes(_board) {
   var remainingMarbles = [];
   _board.forEach(function (idx) {
@@ -412,7 +413,7 @@ function renderArrows() {
   var nearbyOpenCells = findCellsClasses(
     possibleMoveDirections(selectedMarbles)
   );
-  var validShoveDirs = findCellsClasses(canIShove(selectedMarbles));
+  var validShoveDirs = findCellsClasses(canIShove(selectedMarbles, -1));
   //if(!isAITurn()){
   if (selectedMarbles.length > 0) {
     $(nearbyOpenCells).show();
@@ -481,14 +482,14 @@ function filterCanShoveMoves(moves) {
   });
 }
 
-function getMoves() {
-  moves1 = getOneMarbleMoves(true);
-  moves2 = getTwoMarbleMoves();
-  moves3 = getThreeMarbleMoves(moves2);
+function getMoves(_whoseTurn) {
+  moves1 = getOneMarbleMoves(true, _whoseTurn);
+  moves2 = getTwoMarbleMoves(_whoseTurn);
+  moves3 = getThreeMarbleMoves(moves2, _whoseTurn);
   return moves1.concat(moves2.concat(moves3));
 }
 
-function getThreeMarbleMoves(moves2) {
+function getThreeMarbleMoves(moves2, _whoseTurn) {
   let moves3 = [];
   let groupsOfThree = [];
 
@@ -536,9 +537,9 @@ function getThreeMarbleMoves(moves2) {
     }
   });
   groupsOfThree.forEach((group) => {
-    if (canIShove(group).length != 0) {
+    if (canIShove(group, _whoseTurn).length != 0) {
       // if can shove
-      canIShove(group).forEach((dir) => {
+      canIShove(group, _whoseTurn).forEach((dir) => {
         moves3.push({
           marbles: group.sort(function (a, b) {
             return a - b;
@@ -575,15 +576,16 @@ function getThreeMarbleMoves(moves2) {
   return removeDuplicates;
 }
 
-function getOneMarbleMoves(emptyTilesOnly) {
+function getOneMarbleMoves(emptyTilesOnly, whoseTurn) {
   // // On commence par trouver les pièces des joueurs
-  const redMarblesIndexes = getRemainingRedMarblesIndexes(board);
-  const redMarbles = redMarblesIndexes.map((index) => board[index] ?? {});
+  const marblesIndexes = whoseTurn == 1 ? getRemainingRedMarblesIndexes(board) : getRemainingBlueMarblesIndexes(board) ;
+  const _marbles = marblesIndexes.map((index) => board[index] ?? {});
+
   // On ajoute des billes seules qui peuvent bouger sur une case vide seulement
   // Les billes seules ne pouvant pas pousser d'autre billes, on ne les ajoute pas si
   // la case adjacente est occuppée par une bille adverse, on retestera ce cas pour les moves à 2 billes.
   let moves = [];
-  redMarbles.forEach((marble) => {
+  _marbles.forEach((marble) => {
     directions.forEach((direction) => {
       if (emptyTilesOnly) {
         if (
@@ -597,7 +599,7 @@ function getOneMarbleMoves(emptyTilesOnly) {
           });
         }
       } else {
-        // same as previous if but also includes tiles occupied by opponent for 2 marble moves testing
+        // same as previous if statement but also includes tiles occupied by opponent for 2 marble moves testing
         if (
           marble[direction] != null &&
           (board[marble[direction]].marble == 0 ||
@@ -614,8 +616,8 @@ function getOneMarbleMoves(emptyTilesOnly) {
   return moves;
 }
 
-function getTwoMarbleMoves() {
-  const moves1 = getOneMarbleMoves(false);
+function getTwoMarbleMoves(_whoseTurn) {
+  const moves1 = getOneMarbleMoves(false, _whoseTurn);
   const moves2 = [];
   // we don't use the direction attribute here because a package of two marbles can
   // move along several potential directions
@@ -640,17 +642,13 @@ function getTwoMarbleMoves() {
               const potentialShoveDirections = canIShove(
                 [marble1Index, marble2Index].sort(function (a, b) {
                   return a - b;
-                })
+                }), _whoseTurn
               );
-              // if(marble1Index==14 && marble2Index==8){
-              //   debugger
-              // }
               if (
                 potentialShoveDirections != null &&
                 potentialShoveDirections.length != 0
               ) {
                 // 2 marble move that shoves opponent marble
-
                 potentialShoveDirections.forEach((dir) => {
                   moves2.push({
                     marbles: [marble1Index, marble2Index],
@@ -674,7 +672,7 @@ function getTwoMarbleMoves() {
                 }
                 if (
                   board[marble1[moveDirection]].marble == 0 &&
-                  board[marble2[moveDirection]].marble == 1 &&
+                  board[marble2[moveDirection]].marble == _whoseTurn && 
                   getOppDir(direction) == moveDirection
                 ) {
                   // 2 marble move on two empty tiles
@@ -716,8 +714,8 @@ function isAITurn() {
 }
 
 function makeAIPlay() {
-  // HAS TO RETURN BEST MOVE ACCORDING TO MIN MAX ALGORITHM
-  const legalMoves = getMoves().map((move) => {
+  // HAS TO RETURN AND PLAY THE BEST MOVE ACCORDING TO MIN MAX ALGORITHM
+  const legalMoves = getMoves(whoseTurn).map((move) => {
     return {
       marbles: move.marbles.sort(function (a, b) {
         return a - b;
@@ -731,6 +729,9 @@ function makeAIPlay() {
     evaluatedMoves = evaluateMoves(legalMoves);
     //const move = legalMoves[getRandomInt(legalMoves.length)] // Randomly pick a move
     const move = evaluatedMoves[0];
+    //const move = minMax(board, 4, isAITurn())
+    const testMinMax = minMax(board, 2, isAITurn());
+    console.log(testMinMax)
     selectedMarbles = move.marbles;
     moveMarbles(selectedMarbles, move.direction);
     selectedMarbles = [];
@@ -741,7 +742,7 @@ function makeAIPlay() {
 function evaluateMoves(moves) {
   const evaluatedMoves = moves
     .map((move) => {
-      console.log("Move: ", move, "Evaluated: ", evaluateMove(move));
+      //console.log("Move: ", move, "Evaluated: ", evaluateMove(move));
       return { ...move, note: evaluateMove(move) };
     })
     .sort((a, b) => {
@@ -751,11 +752,49 @@ function evaluateMoves(moves) {
   return evaluatedMoves;
 }
 
-function minMax(board, depth, maximizer, whoseTurn) {
-  depth--;
-  if (depth == 0) {
-    return;
+function minMax(_board, depth, isMaximizer) {
+  let defaultNote = 0;
+  let nextMax = false;
+  let bestNote = 0;
+
+  // OK
+  if(isMaximizer){
+    defaultNote = -1000;
+    nextMax = false;
   }
+  else{
+    defaultNote = 1000;
+    nextMax = true;
+  };
+
+  
+  // NOK
+  if(depth===0){ // i.e board is a leaf
+    return {note : boardHeuristics(_board), move : {}};
+  }
+  else{ //  /!\ adapt getMoves to includes both players possible moves /!\
+    
+    getMoves(isMaximizer ? 1 : -1).forEach((move)=>{ 
+      const newBoard = moveMarblesForBoardEvaluation(move.marbles, move.direction);
+      tempNote = minMax(newBoard, depth-1, nextMax)
+      if(tempNote.note){
+        if(isMaximizer){
+  
+          return {note : Math.max(bestNote, tempNote.note), move};
+        }
+        else{
+          return {note : Math.min(bestNote, tempNote.note), move};
+        }
+      }
+    })
+  };
+}
+
+function boardHeuristics(_board){
+  const centerProximity = evaluateCenterProximity(_board, isAITurn()) - evaluateCenterProximity(_board, !isAITurn());
+  const numberOfMarbles =  evaluateNumber(_board, isAITurn()) - evaluateNumber(_board, !isAITurn());
+  
+  return centerProximity+numberOfMarbles
 }
 
 function evaluateMove(move) {
@@ -823,11 +862,7 @@ function evaluateCenterProximity(newBoard, whoseTurn) {
 }
 
 function evaluateNumber(newBoard, whoseTurn) {
-  if (whoseTurn === 1) {
-    return getRemainingRedMarblesIndexes(newBoard).length;
-  } else {
-    return getRemainingBlueMarblesIndexes(newBoard).length;
-  }
+  return whoseTurn===1 ? getRemainingRedMarblesIndexes(newBoard).length : getRemainingBlueMarblesIndexes(newBoard).length;
 }
 
 function evaluateShoveOpponentMarble(newBoard, whoseTurn) {
